@@ -23,6 +23,7 @@ let mainWindow
 function createWindow () {
 	appIcon = new Tray('icon.png');
 	const express = require('express');
+	const cors = require('cors')
 	const exp = express();
 	const port = 3001;
 	buildPortList();
@@ -30,11 +31,15 @@ function createWindow () {
 	parser.on('data', function(data){
 		currSpeed = data;
 	})
-	exp.get('/:action', function(req,res,next){
+	exp.get('/:action',cors(), function(req,res,next){
 		let data = "";
 		switch (req.params.action) {
 			case 'speed' :
-				data = {"speed":currSpeed};
+				data = {"speed":currSpeed,"connected": connectionStatus};
+				res.json(data);
+				break;
+			case 'status' :
+				data = {"status": connectionStatus}
 				res.json(data);
 				break;
 		}
