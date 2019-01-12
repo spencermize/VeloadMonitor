@@ -22,34 +22,27 @@ var currSpeed = 0;
 let mainWindow
 function createWindow () {
 	appIcon = new Tray('icon.png');
+	const express = require('express');
+	const exp = express();
+	const port = 3001;
 	buildPortList();
 	// Open the hardware
 	parser.on('data', function(data){
-		
 		currSpeed = data;
-		console.log(data);
-	})	
-
-	mainWindow = new BrowserWindow({
-		show: false
 	})
-  // and load the index.html of the app.
-  mainWindow.loadURL(url.format({
-    pathname: path.join(__dirname, 'index.html'),
-    protocol: 'file:',
-    slashes: true
-  }))
-
-  // Open the DevTools.
-  //mainWindow.webContents.openDevTools()
-
-  // Emitted when the window is closed.
-  mainWindow.on('closed', function () {
-    // Dereference the window object, usually you would store windows
-    // in an array if your app supports multi windows, this is the time
-    // when you should delete the corresponding element.
-    mainWindow = null
-  })
+	exp.get('/:action', function(req,res,next){
+		let data = "";
+		switch (req.params.action) {
+			case 'speed' :
+				data = {"speed":currSpeed};
+				res.json(data);
+				break;
+		}
+	})
+	exp.listen(port, () => {
+	  console.log(`Server listenening on ${port}`);
+	});
+	
 }
 
 // This method will be called when Electron has finished
@@ -79,7 +72,6 @@ function createTray(template){
 	  // Create the browser window.
 	appIcon.setToolTip('Veload Monitor');
 	connect = connectionStatus.length>0 ? "Connected to " + connectionStatus : "Disconnected";
-	console.log("rebuild menu");
 	let contextMenu = Menu.buildFromTemplate([
 		{
 			label: 'Veload Monitor'
@@ -113,7 +105,6 @@ function buildPortList(){
 		template = [];
 		ports.forEach(function(port) {
 			let status = connectionStatus == port.comName ? true : false;
-			console.log(status);
 			template.push({
 				label: port.comName,
 				type: "radio",

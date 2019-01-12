@@ -24,6 +24,7 @@
   },
   "dependencies": {
     "serialport": "7.1.2",
-    "jquery": "latest"
+    "jquery": "latest",
+    "express": "4.16.4"
   }
 }
