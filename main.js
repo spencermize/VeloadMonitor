@@ -1,28 +1,60 @@
+var stats = {
+	speed: 0,
+	cadence: 0,
+	hr: 0,
+	connectionStatus: "",
+	sensors: []
+}
 var Ant = require('ant-plus');
 try{
 	var stick = new Ant.GarminStick2();
-	console.log(stick);
+	//console.log(stick);
 	var speedCadenceSensor = new Ant.SpeedCadenceSensor(stick);
-	console.log(speedCadenceSensor);
+	//console.log(speedCadenceSensor);
 	var hr = new Ant.HeartRateSensor(stick);
+	hr.on('attached',function(){
+		stats.sensors.push("hr");		
+	});
+	hr.on('detatched',function(){
+		stats.sensors["hr"] = null;
+	});
+	speedCadenceSensor.on('attached',function(){
+		stats.sensors.push("speed");		
+		stats.sensors.push("cadence");		
+	});
+	hr.on('detatched',function(){
+		stats.sensors["speed"] = null;
+		stats.sensors["cadence"] = null;
+	});	
 	speedCadenceSensor.setWheelCircumference(2.120); //Wheel circumference in meters
 
 //**********ANT****************
 speedCadenceSensor.on('speedData', data => {
   console.log(`speed: ${data.CalculatedSpeed}`);
+  stats.speed = data.CalculatedSpeed;
 });
 
 speedCadenceSensor.on('cadenceData', data => {
   console.log(`cadence: ${data.CalculatedCadence}`);
+  stats.cadence = data.CalculatedCadence;
 });
 
 stick.on('startup', function () {
-	console.log('startup');
 	speedCadenceSensor.attach(0, 0);
-	hr.attach(1, 1);
+	hr.attach(1, 0);
+	stats.connectionStatus = "Ant+";
 });
 hr.on('hbData', function (data) {
     console.log(data.DeviceID, data.ComputedHeartRate);
+	stats.hr = data.ComputedHeartRate;
+	/*if (data.DeviceID !== 0 && dev_id === 0) {
+		dev_id = data.DeviceID;
+		console.log(stickid, 'detaching...');
+		hr.detach();
+		hr.once('detached', function() {
+			hr.attach(0, dev_id);
+		});
+	}*/	
 });
 if (!stick.open()) {
 	console.log('Stick not found!');
@@ -53,6 +85,7 @@ let template = [];
 const SerialPort = require('serialport')
 const Readline = require('@serialport/parser-readline')
 let SerPort = [];
+
 var currSpeed = 0;
 
 // Keep a global reference of the window object, if you don't, the window will
@@ -68,12 +101,15 @@ function createWindow () {
 	exp.get('/:action',cors(), function(req,res,next){
 		let data = "";
 		switch (req.params.action) {
-			case 'speed' :
-				data = {"speed":currSpeed,"connected": connectionStatus};
+			case 'stats' :
+				data = stats;
 				res.json(data);
+				stats.speed = 0;
+				stats.cadence = 0;
+				stats.hr = 0;				
 				break;
 			case 'status' :
-				data = {"status": connectionStatus}
+				data = {"status": stats.connectionStatus}
 				res.json(data);
 				break;
 		}
