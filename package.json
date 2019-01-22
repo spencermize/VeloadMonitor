@@ -20,12 +20,14 @@
   "license": "CC0-1.0",
   "devDependencies": {
     "electron": "latest",
-    "electron-builder": "latest"
+    "electron-builder": "latest",
+    "electron-rebuild": "^1.8.2"
   },
   "dependencies": {
-    "serialport": "7.1.2",
-    "jquery": "latest",
+    "ant-plus": "0.0.22",
+    "cors": "latest",
     "express": "4.16.4",
-    "cors": "latest"
+    "jquery": "latest",
+    "serialport": "7.1.2"
   }
 }

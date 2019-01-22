@@ -1,5 +1,40 @@
-const electron = require('electron')
-const { Menu, Tray } = require('electron')
+var Ant = require('ant-plus');
+try{
+	var stick = new Ant.GarminStick2();
+	console.log(stick);
+	var speedCadenceSensor = new Ant.SpeedCadenceSensor(stick);
+	console.log(speedCadenceSensor);
+	var hr = new Ant.HeartRateSensor(stick);
+	speedCadenceSensor.setWheelCircumference(2.120); //Wheel circumference in meters
+
+//**********ANT****************
+speedCadenceSensor.on('speedData', data => {
+  console.log(`speed: ${data.CalculatedSpeed}`);
+});
+
+speedCadenceSensor.on('cadenceData', data => {
+  console.log(`cadence: ${data.CalculatedCadence}`);
+});
+
+stick.on('startup', function () {
+	console.log('startup');
+	speedCadenceSensor.attach(0, 0);
+	hr.attach(1, 1);
+});
+hr.on('hbData', function (data) {
+    console.log(data.DeviceID, data.ComputedHeartRate);
+});
+if (!stick.open()) {
+	console.log('Stick not found!');
+}
+//**********END ANT****************
+}catch(e){
+	console.log(e);
+}
+
+
+const electron = require('electron');
+const { Menu, Tray } = require('electron');
 // Module to control application life.
 const app = electron.app
 // Module to create native browser window.
@@ -7,6 +42,10 @@ const BrowserWindow = electron.BrowserWindow
 
 const path = require('path')
 const url = require('url')
+
+
+
+
 
 let appIcon,connectionStatus = ""; 
 let template = [];
@@ -70,7 +109,7 @@ app.on('activate', function () {
 // code. You can also put them in separate files and require them here.
 function updateTray(){
 	connect = connectionStatus ? "Connected to " + connectionStatus : "Disconnected";
-	console.log("updateTray");
+	//console.log("updateTray");
 	let contextMenu = Menu.buildFromTemplate([
 		{
 			label: 'Veload Monitor'
@@ -135,6 +174,6 @@ function buildPortList(){
 }
 const parser = new Readline();
 parser.on('data', function(data){
-	console.log(data);
+	//console.log(data);
 	currSpeed = data;
 })
