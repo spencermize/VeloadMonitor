@@ -114,6 +114,14 @@ function createWindow () {
 				break;
 		}
 	})
+	exp.post('/:action',cors(), function(req,res,next){
+		let data = "";
+		switch (req.params.action) {
+			case 'circ' : 
+				res.json("success!");
+				break;
+		}
+	});
 	exp.listen(port, () => {
 	  console.log(`Server listenening on ${port}`);
 	  createTray();
