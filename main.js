@@ -1,20 +1,26 @@
+const electron = require('electron');
+const { Menu, Tray } = require('electron');
+const app = electron.app
+const AutoLaunch = require('auto-launch');
+
+let appIcon,status = ""; 
 const {autoUpdater} = require("electron-updater");
-// when the app is loaded create a BrowserWindow and check for updates
-app.on('ready', function() {
-	createDefaultWindow()
-	autoUpdater.checkForUpdates();
-  });
-  
-  // when the update has been downloaded and is ready to be installed, notify the BrowserWindow
-  autoUpdater.on('update-downloaded', (info) => {
-	  win.webContents.send('updateReady')
-  });
-  
-  // when receiving a quitAndInstall signal, quit and install the new version ;)
-  ipcMain.on("quitAndInstall", (event, arg) => {
-	  autoUpdater.quitAndInstall();
-  })
-//**********ANT****************
+
+
+app.on('ready', function(){
+	createApp();
+	autoUpdater.checkForUpdatesAndNotify();	
+});
+
+// *************Autolaunch**************
+var veloadAutoLauncher = new AutoLaunch({
+    name: 'VeloadListener'
+});
+ 
+veloadAutoLauncher.enable();
+
+
+  //**********ANT****************
 var stats = {
 	speed: 0,
 	cadence: 0,
@@ -107,13 +113,6 @@ hr.on('hbData', function (data) {
 }
 //**********END ANT****************
 
-const electron = require('electron');
-const { Menu, Tray } = require('electron');
-// Module to control application life.
-const app = electron.app
-// Module to create native browser window.
-
-let appIcon,status = ""; 
 //hardware connections
 /*
 const SerialPort = require('serialport')
@@ -121,9 +120,6 @@ const Readline = require('@serialport/parser-readline')
 let SerPort = [];
 */
 
-// Keep a global reference of the window object, if you don't, the window will
-// be closed automatically when the JavaScript object is garbage collected.
-let mainWindow
 function createApp () {
 	const express = require('express');
 	const cors = require('cors')
@@ -164,11 +160,6 @@ function createApp () {
 	
 }
 
-// This method will be called when Electron has finished
-// initialization and is ready to create browser windows.
-// Some APIs can only be used after this event occurs.
-app.on('ready', createApp)
-
 // In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and require them here.
 function updateTray(){
@@ -191,20 +182,23 @@ function updateTray(){
 				{
 					label: 'HR',
 					type: 'checkbox',
-					enabled: false,
-					checked: stats.sensors.hr
+					enabled: stats.sensors.hr,
+					checked: stats.sensors.hr,
+					sublabel: stats.hr.toString()
 				},
 				{
 					label: 'Speed',
 					type: 'checkbox',
-					enabled: false,
-					checked: stats.sensors.speed
+					enabled: stats.sensors.speed,
+					checked: stats.sensors.speed,
+					sublabel: stats.speed.toString()
 				},
 				{
 					label: 'Cadence',
 					type: 'checkbox',
-					enabled: false,
-					checked: stats.sensors.cadence
+					enabled: stats.sensors.cadence,
+					checked: stats.sensors.cadence,
+					sublabel: stats.cadence.toString()
 				}
 			]
 		},		
@@ -264,12 +258,3 @@ parser.on('data', function(data){
 	currSpeed = data;
 })
 */
-
-var AutoLaunch = require('auto-launch');
- 
-var veloadAutoLauncher = new AutoLaunch({
-    name: 'VeloadListener',
-    path: '/Applications/VeloadListener.app',
-});
- 
-veloadAutoLauncher.enable();
