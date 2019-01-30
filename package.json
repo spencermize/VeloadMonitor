@@ -25,6 +25,7 @@
   "license": "CC0-1.0",
   "devDependencies": {
     "electron": "latest",
+    "electron-rebuild": "^1.8.2",
     "electron-builder": "^20.38.5"
   },
   "dependencies": {
@@ -32,6 +33,7 @@
     "auto-launch": "^5.0.5",
     "cors": "latest",
     "electron-updater": "^4.0.6",
-    "express": "4.16.4"
+    "express": "4.16.4",
+    "usb-detection": "^4.1.0"
   }
 }

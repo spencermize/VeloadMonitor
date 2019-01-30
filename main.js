@@ -3,9 +3,11 @@ const { Menu, Tray } = require('electron');
 const app = electron.app
 const AutoLaunch = require('auto-launch');
 
-let appIcon,status = ""; 
+let appIcon; 
 const {autoUpdater} = require("electron-updater");
 
+const usbDetect = require('usb-detection');
+usbDetect.startMonitoring();
 
 app.on('ready', function(){
 	createApp();
@@ -19,8 +21,6 @@ var veloadAutoLauncher = new AutoLaunch({
  
 veloadAutoLauncher.enable();
 
-
-  //**********ANT****************
 var stats = {
 	speed: 0,
 	cadence: 0,
@@ -33,83 +33,84 @@ var stats = {
 	},
 	wheelCircumference: 2.120
 }
+  //**********ANT****************
+
 var hrTimeout,cadenceTimeout,speedTimeout;
 var Ant = require('ant-plus');
-try{
-	var stick = new Ant.GarminStick2();
-	var speedCadenceSensor = new Ant.SpeedCadenceSensor(stick);
-	var hr = new Ant.HeartRateSensor(stick);
-	hr.on('attached',function(){
-				
-	});
-	hr.on('detatched',function(){
-		
-	});
-	speedCadenceSensor.on('attached',function(){
-				
-	});
-	hr.on('detatched',function(){
-		
-	});	
-	speedCadenceSensor.setWheelCircumference(stats.wheelCircumference); //Wheel circumference in meters
+var stick = "";
 
-stick.on('startup', function () {
+usbDetect.on('change', function(device) {setupAnt()});
+setupAnt();
+function setupAnt(){
 	try{
-		speedCadenceSensor.attach(0, 0);
-		hr.attach(1, 0);
-		stats.status = "Ant+";
-	}catch(error){
-		console.log(error);
+		stick = new Ant.GarminStick2();
+		var speedCadenceSensor = new Ant.SpeedCadenceSensor(stick);
+		var hr = new Ant.HeartRateSensor(stick);
+
+		speedCadenceSensor.setWheelCircumference(stats.wheelCircumference); //Wheel circumference in meters
+
+		stick.on('startup', function () {
+			console.log('stick startup');
+			try{
+				speedCadenceSensor.attach(0, 0);
+				hr.attach(1, 0);
+				stats.status = "Ant+";
+			}catch(error){
+				console.log(error);
+			}
+		});
+
+		stick.on('shutdown',function(){
+			stats.status = "";
+		})
+		console.log('attempting to connect to stick');
+		stick.openAsync(function(err){
+			if(err){
+				console.log('unable to connect to stick');
+				console.log(err)
+			}else{
+				console.log('opened')
+			}
+		})
+		speedCadenceSensor.on('speedData', data => {
+			stats.sensors.speed = true;  
+			stats.speed = data.CalculatedSpeed;
+
+			if(speedTimeout){
+				clearTimeout(speedTimeout);
+			}
+			speedTimeout = setTimeout(function(){
+				stats.sensors.speed = false;
+			},5000);  
+		});
+
+		speedCadenceSensor.on('cadenceData', data => {
+			stats.sensors.cadence = true;  
+			stats.cadence = data.CalculatedCadence;
+
+			if(cadenceTimeout){
+				clearTimeout(cadenceTimeout);
+			}
+			cadenceTimeout = setTimeout(function(){
+				stats.sensors.cadence = false;
+			},5000); 
+		});
+
+		hr.on('hbData', function (data) {
+			stats.sensors.hr = true;
+			stats.hr = data.ComputedHeartRate;
+
+			if(hrTimeout){
+				clearTimeout(hrTimeout);
+			}
+			hrTimeout = setTimeout(function(){
+				stats.sensors.hr = false;
+			},5000);
+
+		});
+	}catch(e){
+		console.log(e);
 	}
-});
-
-if (!stick.open()) {
-	console.log('Stick not found!');
-}
-
-speedCadenceSensor.on('speedData', data => {
-  console.log(`speed: ${data.CalculatedSpeed}`);
-  stats.sensors.speed = true;  
-  stats.speed = data.CalculatedSpeed;
-
-  if(speedTimeout){
-	  clearTimeout(speedTimeout);
-  }
-  speedTimeout = setTimeout(function(){
-	  stats.sensors.speed = false;
-  },5000);  
-});
-
-speedCadenceSensor.on('cadenceData', data => {
-  console.log(`cadence: ${data.CalculatedCadence}`);
-  stats.sensors.cadence = true;  
-  stats.cadence = data.CalculatedCadence;
-
-  if(cadenceTimeout){
-	clearTimeout(cadenceTimeout);
-  }
-  cadenceTimeout = setTimeout(function(){
-	  stats.sensors.cadence = false;
-  },5000); 
-});
-
-hr.on('hbData', function (data) {
-    console.log(data.DeviceID, data.ComputedHeartRate);
-	stats.sensors.hr = true;
-	stats.hr = data.ComputedHeartRate;
-
-	if(hrTimeout){
-		clearTimeout(hrTimeout);
-	}
-	hrTimeout = setTimeout(function(){
-		stats.sensors.hr = false;
-	},5000);
-
-});
-
-
-}catch(e){
-	console.log(e);
 }
 //**********END ANT****************
 
@@ -153,10 +154,15 @@ function createApp () {
 				break;
 		}
 	});
-	exp.listen(port, () => {
-	  console.log(`Server listenening on ${port}`);
-	  createTray();
-	});
+	try{
+		exp.listen(port, () => {
+			console.log(`Server listenening on ${port}`);
+			createTray();
+		  });
+	}catch(error){
+
+	}
+	
 	
 }
 
@@ -164,7 +170,9 @@ function createApp () {
 // code. You can also put them in separate files and require them here.
 function updateTray(){
 	var connect = stats.status ? "Connected to " + stats.status : "Disconnected";
-	//console.log("updateTray");
+	var hr = (Math.max(stats.hr,0)||"no data").toString();
+	var speed = (Math.max(stats.speed,0)||"no data").toString();
+	var cadence = (Math.max(stats.cadence,0)||"no data").toString();
 	let contextMenu = Menu.buildFromTemplate([
 		{
 			label: 'Open Veload Dashboard',
@@ -184,21 +192,21 @@ function updateTray(){
 					type: 'checkbox',
 					enabled: stats.sensors.hr,
 					checked: stats.sensors.hr,
-					sublabel: stats.hr.toString()
+					sublabel: hr
 				},
 				{
 					label: 'Speed',
 					type: 'checkbox',
 					enabled: stats.sensors.speed,
 					checked: stats.sensors.speed,
-					sublabel: stats.speed.toString()
+					sublabel: speed
 				},
 				{
 					label: 'Cadence',
 					type: 'checkbox',
 					enabled: stats.sensors.cadence,
 					checked: stats.sensors.cadence,
-					sublabel: stats.cadence.toString()
+					sublabel: cadence
 				}
 			]
 		},		
