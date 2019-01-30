@@ -1,3 +1,19 @@
+const {autoUpdater} = require("electron-updater");
+// when the app is loaded create a BrowserWindow and check for updates
+app.on('ready', function() {
+	createDefaultWindow()
+	autoUpdater.checkForUpdates();
+  });
+  
+  // when the update has been downloaded and is ready to be installed, notify the BrowserWindow
+  autoUpdater.on('update-downloaded', (info) => {
+	  win.webContents.send('updateReady')
+  });
+  
+  // when receiving a quitAndInstall signal, quit and install the new version ;)
+  ipcMain.on("quitAndInstall", (event, arg) => {
+	  autoUpdater.quitAndInstall();
+  })
 //**********ANT****************
 var stats = {
 	speed: 0,
@@ -203,7 +219,7 @@ function updateTray(){
 	appIcon.setContextMenu(contextMenu)
 }
 function createTray(){
-	appIcon = new Tray('build/icon.png');
+	appIcon = new Tray('icon.png');
 	appIcon.setToolTip('Veload Monitor');
 }
 /*

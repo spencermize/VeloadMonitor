@@ -1,7 +1,0 @@
-directories:
-  output: dist
-  buildResources: build
-appId: VeloadListener
-mac:
-  category: ''
-electronVersion: 4.0.1

@@ -1,23 +1,27 @@
 {
   "name": "VeloadListener",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "where weekend warriors train",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
     "postinstall": "electron-builder install-app-deps",
     "pack": "electron-builder --dir",
-    "dist": "electron-builder"
+    "dist": "electron-builder",
+    "publish": "electron-builder -p"
   },
   "repository": "https://github.com/spencermize/VeloadListener",
   "keywords": [
 
   ],
   "build": {
-    "appId": "VeloadListener",
+    "appId": "org.veload.listener",
     "mac": {
-      "category": ""
+      "category": "public.app-category.healthcare-fitness"
     }
+  },
+  "publish": {
+    "provider":"github"
   },
   "author": "Spencer Mize",
   "license": "CC0-1.0",
