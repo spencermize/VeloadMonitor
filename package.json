@@ -6,31 +6,17 @@
   "scripts": {
     "start": "electron .",
     "postinstall": "electron-builder install-app-deps",
-    "pack": "electron-builder --dir",
-    "dist": "electron-builder",
-    "publish": "electron-builder -p always"
+    "pack": "electron-builder -w --dir",
+    "dist": "electron-builder -w",
+    "publish": "electron-builder -w -p always"
   },
   "repository": "https://github.com/spencermize/VeloadListener",
   "keywords": [],
   "build": {
     "appId": "org.veload.listener",
-    "mac": {
-      "category": "public.app-category.healthcare-fitness"
-    },
-    "dmg": {
-      "contents": [
-        {
-          "x": 110,
-          "y": 150
-        },
-        {
-          "x": 240,
-          "y": 150,
-          "type": "link",
-          "path": "/Applications"
-        }
-      ]
-    }
+    "extraFiles": [
+      "icon.png"
+    ]
   },
   "publish": {
     "provider": "github"
