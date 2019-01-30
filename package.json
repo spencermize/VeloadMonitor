@@ -1,6 +1,6 @@
 {
   "name": "VeloadListener",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "where weekend warriors train",
   "main": "main.js",
   "scripts": {
