@@ -1,116 +1,129 @@
+//**********ANT****************
 var stats = {
 	speed: 0,
 	cadence: 0,
 	hr: 0,
-	connectionStatus: "",
-	sensors: []
+	status: "",
+	sensors: {
+		hr: false,
+		speed: false,
+		cadence: false
+	},
+	wheelCircumference: 2.120
 }
+var hrTimeout,cadenceTimeout,speedTimeout;
 var Ant = require('ant-plus');
 try{
 	var stick = new Ant.GarminStick2();
-	//console.log(stick);
 	var speedCadenceSensor = new Ant.SpeedCadenceSensor(stick);
-	//console.log(speedCadenceSensor);
 	var hr = new Ant.HeartRateSensor(stick);
 	hr.on('attached',function(){
-		stats.sensors.push("hr");		
+				
 	});
 	hr.on('detatched',function(){
-		stats.sensors["hr"] = null;
+		
 	});
 	speedCadenceSensor.on('attached',function(){
-		stats.sensors.push("speed");		
-		stats.sensors.push("cadence");		
+				
 	});
 	hr.on('detatched',function(){
-		stats.sensors["speed"] = null;
-		stats.sensors["cadence"] = null;
+		
 	});	
-	speedCadenceSensor.setWheelCircumference(2.120); //Wheel circumference in meters
+	speedCadenceSensor.setWheelCircumference(stats.wheelCircumference); //Wheel circumference in meters
 
-//**********ANT****************
+stick.on('startup', function () {
+	try{
+		speedCadenceSensor.attach(0, 0);
+		hr.attach(1, 0);
+		stats.status = "Ant+";
+	}catch(error){
+		console.log(error);
+	}
+});
+
+if (!stick.open()) {
+	console.log('Stick not found!');
+}
+
 speedCadenceSensor.on('speedData', data => {
   console.log(`speed: ${data.CalculatedSpeed}`);
+  stats.sensors.speed = true;  
   stats.speed = data.CalculatedSpeed;
+
+  if(speedTimeout){
+	  clearTimeout(speedTimeout);
+  }
+  speedTimeout = setTimeout(function(){
+	  stats.sensors.speed = false;
+  },5000);  
 });
 
 speedCadenceSensor.on('cadenceData', data => {
   console.log(`cadence: ${data.CalculatedCadence}`);
+  stats.sensors.cadence = true;  
   stats.cadence = data.CalculatedCadence;
+
+  if(cadenceTimeout){
+	clearTimeout(cadenceTimeout);
+  }
+  cadenceTimeout = setTimeout(function(){
+	  stats.sensors.cadence = false;
+  },5000); 
 });
 
-stick.on('startup', function () {
-	speedCadenceSensor.attach(0, 0);
-	hr.attach(1, 0);
-	stats.connectionStatus = "Ant+";
-});
 hr.on('hbData', function (data) {
     console.log(data.DeviceID, data.ComputedHeartRate);
+	stats.sensors.hr = true;
 	stats.hr = data.ComputedHeartRate;
-	/*if (data.DeviceID !== 0 && dev_id === 0) {
-		dev_id = data.DeviceID;
-		console.log(stickid, 'detaching...');
-		hr.detach();
-		hr.once('detached', function() {
-			hr.attach(0, dev_id);
-		});
-	}*/	
+
+	if(hrTimeout){
+		clearTimeout(hrTimeout);
+	}
+	hrTimeout = setTimeout(function(){
+		stats.sensors.hr = false;
+	},5000);
+
 });
-if (!stick.open()) {
-	console.log('Stick not found!');
-}
-//**********END ANT****************
+
+
 }catch(e){
 	console.log(e);
 }
-
+//**********END ANT****************
 
 const electron = require('electron');
 const { Menu, Tray } = require('electron');
 // Module to control application life.
 const app = electron.app
 // Module to create native browser window.
-const BrowserWindow = electron.BrowserWindow
 
-const path = require('path')
-const url = require('url')
-
-
-
-
-
-let appIcon,connectionStatus = ""; 
-let template = [];
+let appIcon,status = ""; 
 //hardware connections
+/*
 const SerialPort = require('serialport')
 const Readline = require('@serialport/parser-readline')
 let SerPort = [];
-
-var currSpeed = 0;
+*/
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
 let mainWindow
-function createWindow () {
+function createApp () {
 	const express = require('express');
 	const cors = require('cors')
 	const exp = express();
 	const port = 3001;
 
-	setInterval(buildPortList,3000);
+	setInterval(updateTray,3000);
 	exp.get('/:action',cors(), function(req,res,next){
 		let data = "";
 		switch (req.params.action) {
 			case 'stats' :
-				data = stats;
-				res.json(data);
-				stats.speed = 0;
-				stats.cadence = 0;
-				stats.hr = 0;				
-				break;
 			case 'status' :
-				data = {"status": stats.connectionStatus}
-				res.json(data);
+				res.json(stats);
+				stats.speed = -1;
+				stats.cadence = -1;
+				stats.hr = -1;				
 				break;
 		}
 	})
@@ -118,7 +131,13 @@ function createWindow () {
 		let data = "";
 		switch (req.params.action) {
 			case 'circ' : 
-				res.json("success!");
+				try{
+					stats.wheelCircumference = req.query.size;
+					speedCadenceSensor.setWheelCircumference(req.query.size);
+					res.json({status:"success"});
+				}catch(error){
+					res.json(error);
+				}
 				break;
 		}
 	});
@@ -132,39 +151,46 @@ function createWindow () {
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
-app.on('ready', createWindow)
-
-// Quit when all windows are closed.
-app.on('window-all-closed', function () {
-  // On OS X it is common for applications and their menu bar
-  // to stay active until the user quits explicitly with Cmd + Q
-  app.quit()
-})
-
-app.on('activate', function () {
-  // On OS X it's common to re-create a window in the app when the
-  // dock icon is clicked and there are no other windows open.
-  if (mainWindow === null) {
-    createWindow()
-  }
-})
+app.on('ready', createApp)
 
 // In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and require them here.
 function updateTray(){
-	connect = connectionStatus ? "Connected to " + connectionStatus : "Disconnected";
+	var connect = stats.status ? "Connected to " + stats.status : "Disconnected";
 	//console.log("updateTray");
 	let contextMenu = Menu.buildFromTemplate([
 		{
-			label: 'Veload Monitor'
+			label: 'Open Veload Dashboard',
+			click: function(){
+				require('electron').shell.openExternal('https://home.spencerm.pro/dashboard');
+			}
 		},
 		{
 			type: 'separator'
 		},		
 		{
 			label: 'Status:',
-			enabled: false,
-			sublabel: connect
+			sublabel: connect,
+			submenu: [
+				{
+					label: 'HR',
+					type: 'checkbox',
+					enabled: false,
+					checked: stats.sensors.hr
+				},
+				{
+					label: 'Speed',
+					type: 'checkbox',
+					enabled: false,
+					checked: stats.sensors.speed
+				},
+				{
+					label: 'Cadence',
+					type: 'checkbox',
+					enabled: false,
+					checked: stats.sensors.cadence
+				}
+			]
 		},		
 		{
 			type: 'separator'
@@ -177,12 +203,12 @@ function updateTray(){
 	appIcon.setContextMenu(contextMenu)
 }
 function createTray(){
-	appIcon = new Tray('icon.png');
+	appIcon = new Tray('build/icon.png');
 	appIcon.setToolTip('Veload Monitor');
 }
-
+/*
 function buildPortList(){
-	if(!connectionStatus){
+	if(!status){
 		template = [];
 		SerialPort.list(function (err, ports) {
 			ports.forEach(function(port) {
@@ -192,7 +218,7 @@ function buildPortList(){
 				});
 				sp.on('error', function(err) {
 					console.log(err);
-					connectionStatus = "";
+					status = "";
 				});
 				sp.open(function (err) {
 					if (err) {
@@ -201,12 +227,12 @@ function buildPortList(){
 					}
 					sp.once('data',function(data){
 						console.log("connected " + this.path);
-						connectionStatus = this.path;
+						status = this.path;
 						updateTray();								
 					});
 					sp.on('close', function(close) {
 						console.log(close);
-						connectionStatus = "";
+						status = "";
 					});
 				})
 				sp.pipe(parser);
@@ -221,3 +247,13 @@ parser.on('data', function(data){
 	//console.log(data);
 	currSpeed = data;
 })
+*/
+
+var AutoLaunch = require('auto-launch');
+ 
+var veloadAutoLauncher = new AutoLaunch({
+    name: 'VeloadListener',
+    path: '/Applications/VeloadListener.app',
+});
+ 
+veloadAutoLauncher.enable();

@@ -1,33 +1,35 @@
 {
-  "name": "electron-quick-start",
-  "version": "1.0.0",
-  "description": "A minimal Electron application",
+  "name": "VeloadListener",
+  "version": "0.0.1",
+  "description": "where weekend warriors train",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
     "postinstall": "electron-builder install-app-deps",
-    "dist": "build"
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder"
   },
-  "repository": "https://github.com/electron/electron-quick-start",
+  "repository": "https://github.com/spencermize/VeloadListener",
   "keywords": [
-    "Electron",
-    "quick",
-    "start",
-    "tutorial",
-    "demo"
+
   ],
-  "author": "GitHub",
+  "build": {
+    "appId": "VeloadListener",
+    "mac": {
+      "category": ""
+    }
+  },
+  "author": "Spencer Mize",
   "license": "CC0-1.0",
   "devDependencies": {
     "electron": "latest",
-    "electron-builder": "latest",
+    "electron-builder": "^20.38.5",
     "electron-rebuild": "^1.8.2"
   },
   "dependencies": {
     "ant-plus": "0.0.22",
     "cors": "latest",
-    "express": "4.16.4",
-    "jquery": "latest",
-    "serialport": "7.1.2"
+    "auto-launch": "^5.0.5",    
+    "express": "4.16.4"
   }
 }
