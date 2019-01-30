@@ -1,0 +1,7 @@
+directories:
+  output: dist
+  buildResources: build
+appId: org.veload.listener
+mac:
+  category: public.app-category.healthcare-fitness
+electronVersion: 4.0.1
