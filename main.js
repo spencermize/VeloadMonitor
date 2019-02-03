@@ -36,19 +36,29 @@ var stats = {
 }
   //**********ANT****************
 
-var hrTimeout,cadenceTimeout,speedTimeout;
+var hrTimeout,cadenceTimeout,speedTimeout,stickWait;
 var Ant = require('ant-plus');
 var stick = "";
 var speedCadenceSensor = "";
 var hr = "";
 usbDetect.on('change', function(device) {
-	try{
-		stick && stick.close();
-	}catch(e){
-		console.log(e)
-	}
-	setupAnt()
+	refreshConnection(true);
 });
+setInterval(refreshConnection,2000); 
+
+function refreshConnection(force){
+	try{	
+		if(stickWait || force){
+			hr = null;
+			speedCadenceSensor = null;
+			stick = null;
+			stickWait && stickWait.cancel();
+			setupAnt();
+		}
+	}catch(error){
+			console.log(error);
+	}
+}
 setupAnt();
 function setupAnt(){
 	stats.status = ""
@@ -77,24 +87,14 @@ function setupAnt(){
 	//	console.log(stick);
 	//	console.log(speedCadenceSensor)
 	//	console.log(hr)
-		var stickWait = stick.openAsync(function(err){
-			stickWait = null;
+		stickWait = stick.openAsync(function(err){
 			if(err){
 				console.log(err);
 				throw new Error("unable to open stick (from the main loop)")
+			}else{
+				stickWait = null;
 			}
 		});
-		setTimeout(function(){
-			try{
-				if(!stats.status){
-					stickWait && stickWait.cancel();
-					throw new Error("unable to open stick (from the timeout)")
-				}
-			}catch(error){
-				console.log(error)
-			}
-
-		},5000); 
 		speedCadenceSensor.on('speedData', data => {
 			stats.sensors.speed = true;  
 			stats.speed = data.CalculatedSpeed;
@@ -152,7 +152,6 @@ function createApp () {
 
 	setInterval(updateTray,3000);
 	exp.get('/:action',cors(), function(req,res,next){
-		let data = "";
 		switch (req.params.action) {
 			case 'stats' :
 			case 'status' :
@@ -164,7 +163,6 @@ function createApp () {
 		}
 	})
 	exp.post('/:action',cors(), function(req,res,next){
-		let data = "";
 		switch (req.params.action) {
 			case 'circ' : 
 				try{
@@ -253,8 +251,10 @@ function updateTray(){
 	appIcon.setContextMenu(contextMenu)
 }
 function createTray(){
-	appIcon = new Tray('icon.png');
-	appIcon.setToolTip('Veload Monitor');
+	if(!appIcon){
+		appIcon = new Tray('icon.png');
+		appIcon.setToolTip('Veload Monitor');
+	}
 }
 function getAddresses(){
 	var os = require('os');
