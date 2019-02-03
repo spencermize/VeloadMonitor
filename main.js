@@ -41,7 +41,14 @@ var Ant = require('ant-plus');
 var stick = "";
 var speedCadenceSensor = "";
 var hr = "";
-usbDetect.on('change', function(device) {setupAnt()});
+usbDetect.on('change', function(device) {
+	try{
+		stick && stick.close();
+	}catch(e){
+		console.log(e)
+	}
+	setupAnt()
+});
 setupAnt();
 function setupAnt(){
 	stats.status = ""
@@ -53,7 +60,7 @@ function setupAnt(){
 		speedCadenceSensor.setWheelCircumference(stats.circ); //Wheel circumference in meters
 
 		stick.on('startup', function () {
-			console.log('stick startup');
+			console.log('stick connected');
 			try{
 				speedCadenceSensor.attach(0, 0);
 				hr.attach(1, 0);
@@ -67,14 +74,27 @@ function setupAnt(){
 			stats.status = "";
 		})
 		console.log('attempting to connect to stick');
-		stick.openAsync(function(err){
+	//	console.log(stick);
+	//	console.log(speedCadenceSensor)
+	//	console.log(hr)
+		var stickWait = stick.openAsync(function(err){
+			stickWait = null;
 			if(err){
-				console.log('unable to connect to stick');
-				console.log(err)
-			}else{
-				console.log('opened')
+				console.log(err);
+				throw new Error("unable to open stick (from the main loop)")
 			}
-		})
+		});
+		setTimeout(function(){
+			try{
+				if(!stats.status){
+					stickWait && stickWait.cancel();
+					throw new Error("unable to open stick (from the timeout)")
+				}
+			}catch(error){
+				console.log(error)
+			}
+
+		},5000); 
 		speedCadenceSensor.on('speedData', data => {
 			stats.sensors.speed = true;  
 			stats.speed = data.CalculatedSpeed;
@@ -113,6 +133,7 @@ function setupAnt(){
 		});
 	}catch(e){
 		console.log(e);
+		setupAnt();
 	}
 }
 //**********END ANT****************
