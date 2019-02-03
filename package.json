@@ -1,6 +1,6 @@
 {
   "name": "veload-listener",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "where weekend warriors train",
   "main": "main.js",
   "scripts": {
@@ -22,11 +22,10 @@
     "provider": "github"
   },
   "author": "Spencer Mize",
-  "license": "CC0-1.0",
   "devDependencies": {
     "electron": "latest",
-    "electron-rebuild": "^1.8.2",
-    "electron-builder": "^20.38.5"
+    "electron-rebuild": "latest",
+    "electron-builder": "latest"
   },
   "dependencies": {
     "ant-plus": "0.0.22",
@@ -34,6 +33,6 @@
     "cors": "latest",
     "electron-updater": "^4.0.6",
     "express": "4.16.4",
-    "usb-detection": "^4.1.0"
+    "usb-detection": "latest"
   }
 }
