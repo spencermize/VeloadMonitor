@@ -1,5 +1,5 @@
 {
-  "name": "veload-listener",
+  "name": "veload-monitor",
   "version": "0.0.6",
   "description": "where weekend warriors train",
   "main": "main.js",
@@ -10,10 +10,10 @@
     "dist": "electron-builder -w",
     "publish": "electron-builder -w -p always"
   },
-  "repository": "https://github.com/spencermize/VeloadListener",
+  "repository": "https://github.com/spencermize/VeloadMonitor",
   "keywords": [],
   "build": {
-    "appId": "org.veload.listener",
+    "appId": "org.veload.monitor",
     "extraFiles": [
       "icon.png"
     ]
