@@ -2,6 +2,7 @@ const electron = require('electron');
 const { Menu, Tray } = require('electron');
 const app = electron.app
 const AutoLaunch = require('auto-launch');
+const port = 3001;
 
 let appIcon; 
 const {autoUpdater} = require("electron-updater");
@@ -31,23 +32,25 @@ var stats = {
 		speed: false,
 		cadence: false
 	},
-	wheelCircumference: 2.120
+	circ: 2.120
 }
   //**********ANT****************
 
 var hrTimeout,cadenceTimeout,speedTimeout;
 var Ant = require('ant-plus');
 var stick = "";
-
+var speedCadenceSensor = "";
+var hr = "";
 usbDetect.on('change', function(device) {setupAnt()});
 setupAnt();
 function setupAnt(){
+	stats.status = ""
 	try{
 		stick = new Ant.GarminStick2();
-		var speedCadenceSensor = new Ant.SpeedCadenceSensor(stick);
-		var hr = new Ant.HeartRateSensor(stick);
+		speedCadenceSensor = new Ant.SpeedCadenceSensor(stick);
+		hr = new Ant.HeartRateSensor(stick);
 
-		speedCadenceSensor.setWheelCircumference(stats.wheelCircumference); //Wheel circumference in meters
+		speedCadenceSensor.setWheelCircumference(stats.circ); //Wheel circumference in meters
 
 		stick.on('startup', function () {
 			console.log('stick startup');
@@ -125,7 +128,6 @@ function createApp () {
 	const express = require('express');
 	const cors = require('cors')
 	const exp = express();
-	const port = 3001;
 
 	setInterval(updateTray,3000);
 	exp.get('/:action',cors(), function(req,res,next){
@@ -145,11 +147,16 @@ function createApp () {
 		switch (req.params.action) {
 			case 'circ' : 
 				try{
-					stats.wheelCircumference = req.query.size;
-					speedCadenceSensor.setWheelCircumference(req.query.size);
+					if(req.query.value){
+						stats.circ = new Number(req.query.value);
+					}else{
+						throw new Error("no value set");
+					}
+					speedCadenceSensor.setWheelCircumference(req.query.value);
 					res.json({status:"success"});
 				}catch(error){
-					res.json(error);
+					console.log(error);
+					res.json({status:"fail", error: error.toString()});
 				}
 				break;
 		}
@@ -176,9 +183,13 @@ function updateTray(){
 	let contextMenu = Menu.buildFromTemplate([
 		{
 			label: 'Open Veload Dashboard',
+			sublabel: 'Version: ' + app.getVersion(),
 			click: function(){
-				require('electron').shell.openExternal('https://home.spencerm.pro/dashboard');
+				require('electron').shell.openExternal('https://veload.bike/dashboard');
 			}
+		},{
+			label: 'Broadcasting on:',
+			sublabel: `http://127.0.0.1:${port},${getAddresses()}`
 		},
 		{
 			type: 'separator'
@@ -223,6 +234,21 @@ function updateTray(){
 function createTray(){
 	appIcon = new Tray('icon.png');
 	appIcon.setToolTip('Veload Monitor');
+}
+function getAddresses(){
+	var os = require('os');
+
+	var interfaces = os.networkInterfaces();
+	var addresses = [];
+	for (var k in interfaces) {
+		for (var k2 in interfaces[k]) {
+			var address = interfaces[k][k2];
+			if (address.family === 'IPv4' && !address.internal) {
+				addresses.push(address.address);
+			}
+		}
+	}
+	return `http://${addresses.join(", http://")}:${port}`;
 }
 /*
 function buildPortList(){

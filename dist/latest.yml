@@ -1,8 +1,8 @@
-version: 0.0.3
+version: 0.0.5
 files:
-  - url: VeloadListener-Setup-0.0.3.exe
-    sha512: t3j6A/lCft7RwNTuy8gfdV4ovts8NGcwNGMzade63UMDoPFpk4nj2JCoqoVW5qXX/IinWmdNdEvIzuIFKlsqXQ==
-    size: 46056722
-path: VeloadListener-Setup-0.0.3.exe
-sha512: t3j6A/lCft7RwNTuy8gfdV4ovts8NGcwNGMzade63UMDoPFpk4nj2JCoqoVW5qXX/IinWmdNdEvIzuIFKlsqXQ==
-releaseDate: '2019-01-30T23:48:08.036Z'
+  - url: VeloadListener-Setup-0.0.5.exe
+    sha512: YtqOxUwzhxR+UR0KYOWaXh1XBTM4OlOLmof5+xi2gVU1eg2n+Ox2fnEbXPXrwhscd+phOVaIuTrBGP1dxYFgMQ==
+    size: 46057406
+path: VeloadListener-Setup-0.0.5.exe
+sha512: YtqOxUwzhxR+UR0KYOWaXh1XBTM4OlOLmof5+xi2gVU1eg2n+Ox2fnEbXPXrwhscd+phOVaIuTrBGP1dxYFgMQ==
+releaseDate: '2019-02-03T02:28:43.173Z'
