@@ -1,14 +1,16 @@
 const electron = require('electron');
 const { Menu, Tray } = require('electron');
 const app = electron.app
-const AutoLaunch = require('auto-launch');
 const port = 3001;
-
 let appIcon; 
 const {autoUpdater} = require("electron-updater");
+const path = require('path');
 
 const usbDetect = require('usb-detection');
 usbDetect.startMonitoring();
+
+const Store = require('electron-store');
+const store = new Store();
 
 app.on('ready', function(){
 	createApp();
@@ -16,11 +18,9 @@ app.on('ready', function(){
 });
 
 // *************Autolaunch**************
-var veloadAutoLauncher = new AutoLaunch({
-    name: 'VeloadListener'
+app.setLoginItemSettings({
+	openAtLogin: true
 });
- 
-veloadAutoLauncher.enable();
 
 var stats = {
 	speed: 0,
@@ -32,73 +32,71 @@ var stats = {
 		speed: false,
 		cadence: false
 	},
+	stick: store.get('stick','GarminStick2'),
 	circ: 2.120
 }
   //**********ANT****************
 
-var hrTimeout,cadenceTimeout,speedTimeout,stickWait;
+var hrTimeout,cadenceTimeout,speedTimeout;
 var Ant = require('ant-plus');
-var stick = "";
+var stickObj = "";
 var speedCadenceSensor = "";
 var hr = "";
 usbDetect.on('change', function(device) {
-	refreshConnection(true);
+	refreshConnection("usb changed");
 });
-setInterval(refreshConnection,2000); 
 
-function refreshConnection(force){
-	try{	
-		if(stickWait || force){
-			hr = null;
-			speedCadenceSensor = null;
-			stick = null;
-			stickWait && stickWait.cancel();
-			setupAnt();
-		}
+function refreshConnection(error){
+	console.log(error);
+	app.relaunch()
+	app.quit();
+}
+function attachSensors(){
+	try{
+		speedCadenceSensor.attach(0, 0)				
 	}catch(error){
-			console.log(error);
+		console.log('cannot attach speedcadence');
+		refreshConnection(error)
 	}
 }
-setupAnt();
 function setupAnt(){
-	stats.status = ""
 	try{
-		stick = new Ant.GarminStick2();
-		speedCadenceSensor = new Ant.SpeedCadenceSensor(stick);
-		hr = new Ant.HeartRateSensor(stick);
-
+		stickObj = new Ant[stats.stick]();
+		speedCadenceSensor = new Ant.SpeedCadenceSensor(stickObj);
+		hr = new Ant.HeartRateSensor(stickObj);
 		speedCadenceSensor.setWheelCircumference(stats.circ); //Wheel circumference in meters
-
-		stick.on('startup', function () {
-			console.log('stick connected');
-			try{
-				speedCadenceSensor.attach(0, 0);
-				hr.attach(1, 0);
-				stats.status = "Ant+";
-			}catch(error){
-				console.log(error);
-			}
+		stickObj.on('startup', function () {
+			console.log(`${stats.stick} connected`);
+			attachSensors();
+			stats.status = "Ant+";
 		});
 
-		stick.on('shutdown',function(){
+		stickObj.on('shutdown',function(){
 			stats.status = "";
 		})
-		console.log('attempting to connect to stick');
-	//	console.log(stick);
-	//	console.log(speedCadenceSensor)
-	//	console.log(hr)
-		stickWait = stick.openAsync(function(err){
+		console.log(`attempting to connect to ${stats.stick}`);
+
+		stickWait = stickObj.openAsync(function(err){
 			if(err){
 				console.log(err);
 				throw new Error("unable to open stick (from the main loop)")
-			}else{
-				stickWait = null;
 			}
 		});
+		speedCadenceSensor.on("attached",function(){
+			console.log("attached to speedcadence")
+			try{
+				hr.attach(1, 0);
+			}catch(error){
+				console.log('cannot attach hr')
+				refreshConnection(error)				
+			}
+		});		
+		hr.on("attached",function(){
+			console.log("attached to hr")
+		})
 		speedCadenceSensor.on('speedData', data => {
 			stats.sensors.speed = true;  
 			stats.speed = data.CalculatedSpeed;
-
 			if(speedTimeout){
 				clearTimeout(speedTimeout);
 			}
@@ -122,18 +120,24 @@ function setupAnt(){
 		hr.on('hbData', function (data) {
 			stats.sensors.hr = true;
 			stats.hr = data.ComputedHeartRate;
-
 			if(hrTimeout){
 				clearTimeout(hrTimeout);
 			}
 			hrTimeout = setTimeout(function(){
 				stats.sensors.hr = false;
 			},5000);
-
 		});
+		speedCadenceSensor.on("detached",function(){
+			console.log('detached speedcadence sensor');
+			hr.detach();
+		});
+		hr.on("detached",function(){
+			console.log('detached hr');
+		})		
 	}catch(e){
 		console.log(e);
-		setupAnt();
+		app.relaunch()
+		app.quit();
 	}
 }
 //**********END ANT****************
@@ -146,11 +150,32 @@ let SerPort = [];
 */
 
 function createApp () {
+	const https = require('https')
 	const express = require('express');
-	const cors = require('cors')
+	const cors = require('cors');
+	const fs = require('fs');
 	const exp = express();
+	const spdy = require('spdy')
+/*
+	var key;
+	var cert;
+	try{
+		key = fs.readFileSync('server.key'),
+		cert = fs.readFileSync('server.cert')
+	}catch(err){
+		console.log('no valid cert found - generating new...')
+		var attrs = [{ name: 'commonName', value: 'veload.bike' }];
+		var pems = selfsigned.generate(attrs, { days: 365 });
+		key = pems.private;
+		cert = pems.cert;
+		try{
+			fs.writeFileSync("./server.key",key);
+			fs.writeFileSync("./server.cert",cert);
+		}catch(err){
+			console.log('unable to write certificate');
+		}
+	}*/
 
-	setInterval(updateTray,3000);
 	exp.get('/:action',cors(), function(req,res,next){
 		switch (req.params.action) {
 			case 'stats' :
@@ -181,14 +206,42 @@ function createApp () {
 		}
 	});
 	try{
+		/*var spdyOptions = {
+			//key: key,
+			//cert: cert,
+			spdy:{
+				protocols: [ 'h2', 'http/1.1' ],
+				plain: false ,
+				ssl: false
+			}
+		};
+		var server = require('spdy').createServer(spdyOptions, exp);
+		server.on('error', function (err) {
+		  console.error(err);
+		});
+		server.on('listening', function () {
+		  console.log("Listening for SPDY/http2/https requests on", this.address());
+		  setupAnt(); 
+		  createTray();
+		  setInterval(updateTray,3000);
+		  setInterval(refreshConnection,2000); 
+		  
+		});
+		server.listen(port);*/
 		exp.listen(port, () => {
 			console.log(`Server listenening on ${port}`);
+			setupAnt(); 
 			createTray();
-		  });
+			setInterval(updateTray,3000);
+			//setInterval(refreshConnection,3000); 
+		  });			
 	}catch(error){
-
+		console.log('unable to start server...')
+		console.log(error);
+		app.relaunch()
+		app.quit();
 	}
-	
+
 	
 }
 
@@ -199,6 +252,31 @@ function updateTray(){
 	var hr = (Math.max(stats.hr,0)||"no data").toString();
 	var speed = (Math.max(stats.speed,0)||"no data").toString();
 	var cadence = (Math.max(stats.cadence,0)||"no data").toString();
+	if(stats.status){
+		var sub = [
+			{
+				label: 'HR',
+				type: 'checkbox',
+				enabled: stats.sensors.hr,
+				checked: stats.sensors.hr,
+				sublabel: hr
+			},
+			{
+				label: 'Speed',
+				type: 'checkbox',
+				enabled: stats.sensors.speed,
+				checked: stats.sensors.speed,
+				sublabel: speed
+			},
+			{
+				label: 'Cadence',
+				type: 'checkbox',
+				enabled: stats.sensors.cadence,
+				checked: stats.sensors.cadence,
+				sublabel: cadence
+			}
+		]
+	}
 	let contextMenu = Menu.buildFromTemplate([
 		{
 			label: 'Open Veload Dashboard',
@@ -212,33 +290,36 @@ function updateTray(){
 		},
 		{
 			type: 'separator'
+		},
+		{
+			label: 'Stick Type',
+			submenu: [
+				{
+					label: 'Generation 2',
+					type: 'checkbox',
+					checked: stats.stick == "GarminStick2",
+					click: function(){
+						stats.stick = "GarminStick2";
+						store.set('stick','GarminStick2');
+						refreshConnection(true)
+					}
+				},
+				{
+					label: 'Generation 3',
+					type: 'checkbox',
+					checked: stats.stick == "GarminStick3",
+					click: function(){
+						stats.stick = "GarminStick3";
+						store.set('stick','GarminStick3');
+						refreshConnection(true)
+					}					
+				},
+			]
 		},		
 		{
 			label: 'Status:',
 			sublabel: connect,
-			submenu: [
-				{
-					label: 'HR',
-					type: 'checkbox',
-					enabled: stats.sensors.hr,
-					checked: stats.sensors.hr,
-					sublabel: hr
-				},
-				{
-					label: 'Speed',
-					type: 'checkbox',
-					enabled: stats.sensors.speed,
-					checked: stats.sensors.speed,
-					sublabel: speed
-				},
-				{
-					label: 'Cadence',
-					type: 'checkbox',
-					enabled: stats.sensors.cadence,
-					checked: stats.sensors.cadence,
-					sublabel: cadence
-				}
-			]
+			submenu: sub || false
 		},		
 		{
 			type: 'separator'
@@ -252,7 +333,11 @@ function updateTray(){
 }
 function createTray(){
 	if(!appIcon){
-		appIcon = new Tray('icon.png');
+		if(!app.isPackaged){
+			appIcon = new Tray('icon.png');
+		}else{
+			appIcon = new Tray(path.resolve(`${process.resourcesPath}/../icon.png`));
+		}
 		appIcon.setToolTip('Veload Monitor');
 	}
 }

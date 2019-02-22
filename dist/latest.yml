@@ -1,8 +1,8 @@
-version: 0.0.6
+version: 0.0.7
 files:
-  - url: veload-listener-setup-0.0.6.exe
-    sha512: nsrkbDFNhhXxgfVsz1IeKub3OORiDFGXJt5bwArB2dOalq1xHdXpxgzjGU+ngPfzv36HZm3rbfbwwi9HD0SLug==
-    size: 46056662
-path: veload-listener-setup-0.0.6.exe
-sha512: nsrkbDFNhhXxgfVsz1IeKub3OORiDFGXJt5bwArB2dOalq1xHdXpxgzjGU+ngPfzv36HZm3rbfbwwi9HD0SLug==
-releaseDate: '2019-02-03T21:18:34.230Z'
+  - url: VeloadMonitor-Setup-0.0.7.exe
+    sha512: yKc7VgLRQNF8lU6vZWyJqbxifqsVyX+bQ8fl7Gk+6hoV6iNTT/MOoo4nwTSg2tfQ4SGHPuBpmfmpm7tS3pR1QA==
+    size: 46106132
+path: VeloadMonitor-Setup-0.0.7.exe
+sha512: yKc7VgLRQNF8lU6vZWyJqbxifqsVyX+bQ8fl7Gk+6hoV6iNTT/MOoo4nwTSg2tfQ4SGHPuBpmfmpm7tS3pR1QA==
+releaseDate: '2019-02-22T21:27:55.183Z'

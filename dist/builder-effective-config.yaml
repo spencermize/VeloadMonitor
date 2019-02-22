@@ -1,8 +1,8 @@
 directories:
   output: dist
   buildResources: build
-appId: org.veload.listener
+appId: org.veload.monitor
 extraFiles:
   - filter:
-      - icon.png
+      - '**icon.png'
 electronVersion: 4.0.1

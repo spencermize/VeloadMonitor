@@ -1,3 +1,5 @@
 node_modules/
 electron-builder.env
 dist/
+server.cert
+server.key
